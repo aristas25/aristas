@@ -12,6 +12,7 @@ import { isMobile } from "react-device-detect";
 import Users from "./components/Users";
 import Home from "./components/Home";
 import Invite from "./components/Invite";
+import Web from "./components/Web";
 import Logout from "./components/Logout";
 import _, { capitalize } from "lodash";
 import { useQuery } from "@tanstack/react-query";
@@ -33,21 +34,14 @@ export default function App() {
   const inviteId = searchParams.get("inviteId") || null;
   const location = useLocation();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["usuarios"],
-    queryFn: useUsersQuery,
-  });
-
-  if (isLoading) return <div>Cargando...</div>;
-  if (error) return <div>Error al cargar usuarios</div>;
-
   if (user === undefined || user === null) {
     return (
       <Routes>
         <Route
           path="*"
           element={
-            <Navigate to="/login" state={{ referrer: location.pathname }} />
+            // <Navigate to="/login" state={{ referrer: location.pathname }} />
+            <Web />
           }
         />
         <Route path="login" element={<Login />} />
