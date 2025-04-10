@@ -26,7 +26,7 @@ export default function App() {
 
   async function obtenerUsuarios() {
     try {
-      const response = await fetch("http://localhost:3001/api/getMore");
+      const response = await fetch("/api/getMore");
       const result = await response.json();
 
       if (response.ok) {
