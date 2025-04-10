@@ -2,7 +2,9 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const routes = require("./routes/routes.js");
+const MainController = require("./controllers/UserController.js");
 const app = express();
+const cors = require("cors");
 
 const config = require("./config");
 
@@ -13,6 +15,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "*");
   next();
 });
+app.use(cors());
 
 console.log(config);
 
@@ -38,6 +41,6 @@ app.get("*", (req, res) => {
   res.sendFile("index.html", { root });
 });
 
-app.listen(process.env.PORT || 6000);
+app.listen(process.env.PORT || 4000);
 
-console.log("App running and listening on 6000");
+console.log("App running and listening on 4000");
