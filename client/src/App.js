@@ -29,8 +29,6 @@ function getMenu() {
 
 export default function App() {
   const [searchParams] = useSearchParams();
-  const [algo, setAlgo] = useState("");
-  const [usuarios, setUsuarios] = useState([]);
   const user = sessionStorage.email || null;
   const inviteId = searchParams.get("inviteId") || null;
   const location = useLocation();
@@ -43,7 +41,7 @@ export default function App() {
   if (isLoading) return <div>Cargando...</div>;
   if (error) return <div>Error al cargar usuarios</div>;
 
-  if (user === undefined) {
+  if (user === undefined || user === null) {
     return (
       <Routes>
         <Route
@@ -66,6 +64,7 @@ export default function App() {
         <Route element={<RootLayout />}>
           <Route index element={<Home />} />
           <Route path="usuarios" element={<Users />} />
+          <Route path="home" element={<Home />} />
           <Route path="logout" element={<Logout />} />
         </Route>
         <Route

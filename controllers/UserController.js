@@ -69,7 +69,7 @@ self.login = async (req, res) => {
       throw new Error("User not found");
     }
 
-    res.json(user);
+    res.json(_.first(user));
   } catch (e) {
     res.status(401).json({ error: e.message });
   }

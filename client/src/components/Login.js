@@ -16,7 +16,7 @@ export default function Login() {
   } = useForm();
   const navigate = useNavigate();
 
-  const createMutation = useMutation({
+  const loginMutation = useMutation({
     mutationFn: useLoginUserMutation,
     onSuccess: (data) => {
       console.log("Usuario creado:", data);
@@ -37,10 +37,11 @@ export default function Login() {
   });
 
   const setCredentials = (userLogin) => {
-    sessionStorage.username = userLogin.data.username;
-    sessionStorage.name = userLogin.data.name;
-    sessionStorage.lastName = userLogin.data.lastName;
-    sessionStorage.securityLevel = userLogin.data.securityLevel;
+    sessionStorage.username = userLogin.username;
+    sessionStorage.email = userLogin.email;
+    sessionStorage.name = userLogin.name;
+    sessionStorage.lastName = userLogin.lastName;
+    sessionStorage.securityLevel = userLogin.securityLevel;
     navigate("/home");
   };
 
@@ -51,8 +52,9 @@ export default function Login() {
     };
 
     try {
-      const userLogin = createMutation.mutate(body);
-      const userId = userLogin.data._id;
+      const userLogin = await loginMutation.mutateAsync(body);
+      debugger;
+      const userId = userLogin.id;
       updateMutation.mutate(userId, {
         lastlogin: new Date(),
       });
