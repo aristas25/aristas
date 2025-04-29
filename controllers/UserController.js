@@ -10,7 +10,7 @@ self.getUsers = async (req, res) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
-      .is("deletedAt", null);
+      .is("deleted_at", null);
 
     if (error) throw error;
 
@@ -21,13 +21,13 @@ self.getUsers = async (req, res) => {
 };
 
 self.getUserById = async (req, res) => {
-  const userId = req.params.userId;
+  const user_id = req.params.user_id;
   try {
     const { data, error } = await supabase
       .from("users")
       .select("*")
-      .eq("id", userId)
-      .is("deletedAt", null);
+      .eq("id", user_id)
+      .is("deleted_at", null);
 
     if (error) throw error;
 
@@ -43,8 +43,25 @@ self.getUserByUsername = async (req, res) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
-      .eq("username", username)
-      .is("deletedAt", null);
+      .is("deleted_at", null)
+      .ilike("username", `%${search}%`);
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+};
+
+self.getUserByEmail = async (req, res) => {
+  const search = req.params.email;
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .is("deleted_at", null)
+      .ilike("email", `%${search}%`);
 
     if (error) throw error;
 
@@ -63,7 +80,7 @@ self.login = async (req, res) => {
       .select("*")
       .eq("username", username)
       .eq("password", password)
-      .is("deletedAt", null);
+      .is("deleted_at", null);
 
     if (!user) {
       throw new Error("User not found");
@@ -79,12 +96,12 @@ self.createUser = async (req, res) => {
   try {
     const user = {
       name: req.body.name,
-      lastName: req.body.lastName,
+      last_name: req.body.last_name,
       username: req.body.username,
       password: req.body.password,
       email: req.body.email,
       picture: req.body.pictureUrl || "",
-      securityLevel: req.body.securityLevel,
+      type: req.body.type,
     };
 
     const { data: newUser, error } = await supabase
@@ -112,13 +129,15 @@ self.createUser = async (req, res) => {
 
 self.getUserByIdAndUpdate = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const user_id = req.params.user_id;
     const update = req.body;
+
     const { data: updatedUser, error } = await supabase
       .from("users")
       .update(update)
-      .eq("id", userId)
-      .is("deletedAt", null);
+      .eq("id", user_id)
+      .is("deleted_at", null)
+      .select("*");
 
     res.json(updatedUser);
   } catch (e) {
@@ -129,18 +148,78 @@ self.getUserByIdAndUpdate = async (req, res) => {
 
 self.deleteUserById = async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const update = { deletedAt: new Date() };
+    const user_id = req.params.user_id;
+    const update = { deleted_at: new Date() };
     const { data: updatedUser, error } = await supabase
       .from("users")
       .update(update)
-      .eq("id", userId);
+      .eq("id", user_id);
 
     res.json(updatedUser);
   } catch (e) {
     logger.error("delete user by id", e.message);
     res.json({ error: e.message });
   }
+};
+
+self.recoverPassword = async (req, res) => {
+  try {
+    const email = req.body.email;
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .is("deleted_at", null);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const html =
+      '<div className="flex text-sm w-full px-4"><div className="w-full py-4 flex flex-col justify-start"><p className="p-2">Hola ' +
+      user.name +
+      '!</p><p className="p-2">Recupera tu contraseña haciendo <a href="http://localhost:3000/recover?recoverId=' +
+      user.id +
+      '">click aqui</a></p></div></div>';
+
+    await sendEmail(user.email, html);
+
+    res.json(_.first(user));
+  } catch (e) {
+    res.status(401).json({ error: e.message });
+  }
+};
+
+self.medicalHistory = async (req, res) => {
+  res.send({
+    name: "Juan Pérez",
+    records: [
+      {
+        date: "2024-03-15",
+        notes: "Consulta por dolor abdominal. Se solicita ecografía.",
+      },
+      {
+        date: "2024-04-02",
+        notes: "Resultados normales. Se recomienda control en 6 meses.",
+      },
+      {
+        date: "2024-04-10",
+        notes: "Consulta de seguimiento. Paciente asintomático.",
+      },
+    ],
+    links: [
+      {
+        date: "2024-03-15",
+        url: "http://example.com/ecografia.pdf",
+        description: "Ecografía abdominal",
+      },
+      {
+        date: "2024-04-02",
+        url: "http://example.com/resultados.pdf",
+        description: "Resultados de laboratorio",
+      },
+    ],
+  });
 };
 
 module.exports = self;

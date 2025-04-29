@@ -1,6 +1,5 @@
 import {
   NavLink,
-  Navigate,
   Route,
   Routes,
   Outlet,
@@ -8,29 +7,67 @@ import {
   useLocation,
 } from "react-router-dom";
 import Login from "./components/Login";
+import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 import { isMobile } from "react-device-detect";
 import Users from "./components/Users";
 import Home from "./components/Home";
+import Mercadopago from "./components/Mercadopago";
+import AppointmentsUsers from "./components/AppointmentsUsers";
+import AppointmentsProfessional from "./components/AppointmentsProfessional";
+import MedicalHistory from "./components/MedicalHistory";
 import Invite from "./components/Invite";
 import Web from "./components/Web";
+import Profile from "./components/Profile";
 import Logout from "./components/Logout";
 import _, { capitalize } from "lodash";
-import { useQuery } from "@tanstack/react-query";
-import React, { useState, useEffect } from "react";
-import logo from "./logo.svg";
-import { useUsersQuery } from "./apis/api.users";
-import { cn, tw } from "./utils/utils";
+import React, { useState } from "react";
+import { cn } from "./utils/utils";
 import "./App.css";
+import config from "./config";
 
-const BRAND = "ARISTAS";
 function getMenu() {
-  let menu = ["usuarios", "logout"];
+  let menu = [];
+  let defaultMenu = [
+    "home",
+    "usuarios",
+    "turnos",
+    "agenda",
+    "mercadopago",
+    "profile",
+    "logout",
+  ];
+
+  switch (sessionStorage.type) {
+    case "ADMIN":
+      menu = [
+        ...defaultMenu,
+        "home",
+        "usuarios",
+        "turnos",
+        "agenda",
+        "mercadopago",
+        "logout",
+      ];
+      break;
+    case "PROFESSIONAL":
+      menu = [...defaultMenu, "home", "agenda", "logout"];
+      break;
+    case "USER":
+      menu = [...defaultMenu, "home", "turnos", "logout"];
+      break;
+    default:
+      menu = [...defaultMenu, "home", "logout"];
+  }
+  menu = _.uniq(menu);
+
   return menu;
 }
 
 export default function App() {
   const [searchParams] = useSearchParams();
   const user = sessionStorage.email || null;
+  const userType = sessionStorage.type || null;
   const inviteId = searchParams.get("inviteId") || null;
   const location = useLocation();
 
@@ -48,6 +85,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/invite" element={<Invite inviteId={inviteId} />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     );
   }
@@ -57,7 +96,29 @@ export default function App() {
       <Route path="/">
         <Route element={<RootLayout />}>
           <Route index element={<Home />} />
-          <Route path="usuarios" element={<Users />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="mercadopago" element={<Mercadopago />} />
+          <Route path="/mercadopago/:action" element={<Mercadopago />} />
+          {userType === "ADMIN" && (
+            <>
+              <Route path="usuarios" element={<Users />} />
+              <Route path="turnos" element={<AppointmentsUsers />} />
+              <Route path="agenda" element={<AppointmentsProfessional />} />
+            </>
+          )}
+          <Route path="home" element={<Home />} />
+          {userType === "PROFESSIONAL" && (
+            <>
+              <Route path="agenda" element={<AppointmentsProfessional />} />
+              <Route
+                path="historia-clinica/:userId"
+                element={<MedicalHistory />}
+              />
+            </>
+          )}
+          {userType === "USER" && (
+            <Route path="turnos" element={<AppointmentsUsers />} />
+          )}
           <Route path="home" element={<Home />} />
           <Route path="logout" element={<Logout />} />
         </Route>
@@ -101,12 +162,24 @@ function RootLayout() {
   );
 }
 
+function getTheme() {
+  return {
+    primaryColor: `bg-[${config.theme.colors.primaryColor}]`,
+    secondaryColor: `bg-[${config.theme.colors.secondaryColor}]`,
+    textMenuBrandColor: `text-[${config.theme.colors.textMenuBrandColor}]`,
+    textMenuColor: `text-[${config.theme.colors.textMenuColor}]`,
+    textMenuHoverColor: `text-[${config.theme.colors.textMenuHoverColor}]`,
+  };
+}
+
 function Layout({ children }) {
+  const theme = getTheme();
+
   return (
     <div className="flex-col w-full h-screen text-gray-700">
       <nav
         className={cn(
-          "left-0 flex justify-between items-center pr-6 w-full h-16 text-white print:hidden bg-black"
+          `left-0 flex justify-between items-center pr-6 w-full h-16 ${theme.textMenuColor} print:hidden ${theme.primaryColor}`
         )}
       >
         <div
@@ -115,23 +188,31 @@ function Layout({ children }) {
         >
           <div className="flex items-center">
             <img
-              src={logo}
+              src={config.theme.logo}
               alt="logo"
               className="ml-4 w-12 h-12 object-cover"
             />
-            <h1 className="inline-block text-2xl sm:text-3xl text-white pl-2 tracking-tight ">
-              {BRAND}
+            <h1
+              className={`inline-block text-2xl sm:text-3xl ${theme.textMenuBrandColor} pl-2 tracking-tight`}
+            >
+              {config.brand}
             </h1>
           </div>
         </div>
-        {isMobile ? <MobileMenu /> : <Profile />}
+        {isMobile ? <MobileMenu /> : <ProfileIcon />}
       </nav>
 
-      <div className="fixed top-16 flex h-[calc(100vh-4rem)] overflow-auto w-full">
+      <div
+        className="fixed top-16 flex overflow-auto w-full"
+        style={{
+          height: isMobile ? "calc(100vh - 4rem)" : "calc(100vh - 4rem)",
+        }}
+      >
+        {/* <div className="fixed top-16 flex overflow-auto w-full"> */}
         {!isMobile && (
           <div
             className={cn(
-              "flex flex-col text-white justify-start items-center w-24 print:hidden bg-black"
+              `flex flex-col ${theme.textMenuColor} justify-start items-center w-24 print:hidden ${theme.primaryColor}`
             )}
           >
             {getMenu().map((el, i) => {
@@ -139,7 +220,7 @@ function Layout({ children }) {
                 <NavLink
                   key={i}
                   className={cn(
-                    "h-14 w-full flex items-center hover:text-white cursor-pointer px-2 hover:bg-gray-400"
+                    `h-14 w-full flex items-center hover:${theme.textMenuHoverColor} cursor-pointer px-2 hover:${theme.secondaryColor}`
                   )}
                   to={el}
                 >
@@ -152,39 +233,23 @@ function Layout({ children }) {
 
         {/* Main content */}
         {isMobile ? (
-          <main className="flex-1 bg-white w-[calc(10vh)] mt-4">
-            {children}
-          </main>
+          <main className="flex-1 bg-white w-[calc(10vh)]">{children}</main>
         ) : (
-          <main className="flex-1 bg-white w-[calc(100%-140px)] mt-4">
+          <main className="flex-1 bg-cold-white w-[calc(100%-140px)]">
             {children}
           </main>
         )}
       </div>
-
-      {/* Footer logo */}
-      {isMobile ? (
-        <div className="flex gap-2 right-2 fixed bottom-1 z-20 justify-center items-center px-3 h-10 bg-white rounded-full shadow print:hidden">
-          <span className="text-xs tracking-widest leading-none text-gray-300">
-            &copy; {new Date().getFullYear()}
-          </span>
-          <span className="text-xs">{BRAND}</span>
-        </div>
-      ) : (
-        <div className="flex gap-2 fixed bottom-6 z-20 justify-center items-center px-3 h-10 bg-white rounded-full shadow print:hidden">
-          <span className="text-xs tracking-widest leading-none text-gray-300">
-            &copy; {new Date().getFullYear()}
-          </span>
-          <span className="text-xs">{BRAND}</span>
-        </div>
-      )}
     </div>
   );
 }
 
-function Profile() {
+function ProfileIcon() {
   return (
-    <div className="flex items-center justify-end gap-2 h-full mt-2">
+    <div
+      className="flex items-center justify-end gap-2 h-full mt-2 cursor-pointer hover:underline"
+      onClick={() => window.location.assign("/profile")}
+    >
       <p>{sessionStorage.username}</p>
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -206,6 +271,7 @@ function Profile() {
 
 function MobileMenu() {
   const [open, setOpen] = useState(false);
+  const theme = getTheme();
   return (
     <div>
       <div onClick={() => setOpen(!open)} className="cursor-pointer">
@@ -227,17 +293,25 @@ function MobileMenu() {
       <div
         id="menu"
         className={cn(
-          "absolute z-10 top-16 right-0 h-[calc(100%-4rem)] bg-black transition-all duration-200 z-20 w-[160px]",
+          `absolute z-10 top-16 right-0 h-[calc(100%-4rem)] ${theme.primaryColor} transition-all duration-200 z-20 w-[160px]`,
           open && "w-[160px]",
           !open && "hidden"
         )}
       >
         <div className="flex flex-col justify-start items-center">
+          <div
+            className={cn(
+              `h-14 w-full flex flex-col items-start text-xs justify-center pl-4 hover:${theme.secondaryColor}`
+            )}
+          >
+            <span>Hola Leandro</span>
+            <span>PROFESSIONAL</span>
+          </div>
           {getMenu().map((el, i) => {
             return (
               <NavLink
                 key={i}
-                className="h-10 w-full flex items-center text-white pl-4 hover:bg-gray-400 cursor-pointer"
+                className={`h-10 w-full flex items-center ${theme.textMenuColor} pl-4 hover:${theme.secondaryColor} cursor-pointer`}
                 to={el}
                 onClick={() => setOpen(!open)}
               >
